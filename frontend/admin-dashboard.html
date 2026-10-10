@@ -1,0 +1,605 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Admin Dashboard — ManuscriptVault</title>
+    <link rel="stylesheet" href="css/style.css" />
+    <style>
+        .tab-bar {
+            display: flex;
+            gap: 0;
+            border-bottom: 2px solid var(--parchment2);
+            margin-bottom: 2rem;
+        }
+        .tab-btn {
+            padding: 0.75rem 1.5rem;
+            border: none;
+            background: none;
+            font-family: 'DM Sans', sans-serif;
+            font-size: 0.875rem;
+            font-weight: 500;
+            cursor: pointer;
+            color: var(--ink-soft);
+            border-bottom: 3px solid transparent;
+            margin-bottom: -2px;
+            transition: all 0.2s;
+        }
+        .tab-btn:hover { color: var(--gold); }
+        .tab-btn.active {
+            color: var(--gold);
+            border-bottom-color: var(--gold);
+            font-weight: 600;
+        }
+        .tab-panel { display: none; }
+        .tab-panel.active { display: block; }
+
+        .action-btns { display: flex; gap: 0.4rem; }
+    </style>
+</head>
+<body>
+<div class="page-wrapper">
+
+    <!-- Topbar -->
+    <header class="topbar">
+        <div class="topbar-brand">
+            <span class="logo-icon"></span>
+            <div>
+                <h1>ManuscriptVault</h1>
+                <span>Admin Control Panel</span>
+            </div>
+        </div>
+        <div class="topbar-nav">
+            <div class="topbar-user">
+                <span></span>
+                <span id="topbar-username">Admin</span>
+                <span class="role-badge admin" id="topbar-role">ADMIN</span>
+            </div>
+            <button class="btn-logout" id="btn-logout">Sign Out</button>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="main-content">
+
+        <!-- Stats -->
+        <div class="stats-grid" id="stats-grid">
+            <div class="stat-card">
+                <div class="stat-icon"></div>
+                <div class="stat-value" id="stat-manuscripts">—</div>
+                <div class="stat-label">Total Manuscripts</div>
+            </div>
+            <div class="stat-card" style="border-left-color: var(--crimson);">
+                <div class="stat-icon"></div>
+                <div class="stat-value" id="stat-users">—</div>
+                <div class="stat-label">Registered Users</div>
+            </div>
+            <div class="stat-card" style="border-left-color: var(--sage);">
+                <div class="stat-icon"></div>
+                <div class="stat-value" id="stat-admins">—</div>
+                <div class="stat-label">Admin Accounts</div>
+            </div>
+            <div class="stat-card" style="border-left-color: #6a7fa0;">
+                <div class="stat-icon"></div>
+                <div class="stat-value" id="stat-genres">—</div>
+                <div class="stat-label">Genres</div>
+            </div>
+        </div>
+
+        <!-- Tab Navigation -->
+        <div class="tab-bar">
+            <button class="tab-btn active" data-tab="manuscripts"> Manuscripts</button>
+            <button class="tab-btn" data-tab="users">Users</button>
+        </div>
+
+        <!-- Tab: Manuscripts -->
+        <div id="tab-manuscripts" class="tab-panel active">
+            <div class="page-title">
+                <h2> Manage Manuscripts</h2>
+                <button class="btn btn-primary" onclick="openAddModal()">＋ Add Manuscript</button>
+            </div>
+
+            <!-- Alert -->
+            <div id="ms-alert"></div>
+
+            <!-- Search Bar -->
+            <div class="search-bar">
+                <input type="text" id="ms-search" placeholder=" Search title, author, description…" />
+                <select id="ms-filter-genre">
+                    <option value="">All Genres</option>
+                    <option value="Historical">Historical</option>
+                    <option value="Poetry">Poetry</option>
+                    <option value="Science">Science</option>
+                    <option value="Philosophy">Philosophy</option>
+                    <option value="Music">Music</option>
+                    <option value="Literature">Literature</option>
+                </select>
+                <input type="date" id="ms-date-start" title="From date" />
+                <input type="date" id="ms-date-end" title="To date" />
+                <button class="btn btn-outline" onclick="applyFilters()">Filter</button>
+                <button class="btn btn-outline" onclick="loadManuscripts()">Reset</button>
+            </div>
+
+            <!-- Table -->
+            <div class="card">
+                <div class="table-wrap">
+                    <table id="manuscripts-table">
+                        <thead>
+                            <tr>
+                                <th>#</th>
+                                <th>Title</th>
+                                <th>Author</th>
+                                <th>Date</th>
+                                <th>Genre</th>
+                                <th>Pages</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="manuscripts-tbody">
+                            <tr><td colspan="7" style="text-align:center;padding:3rem;">
+                                <span class="spinner"></span> Loading manuscripts…
+                            </td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- Tab: Users -->
+        <div id="tab-users" class="tab-panel">
+            <div class="page-title">
+                <h2> Manage Users</h2>
+                <a href="signup.html" class="btn btn-primary" target="_blank">＋ Add User</a>
+            </div>
+
+            <div id="users-alert"></div>
+
+            <div class="card">
+                <div class="table-wrap">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>#</th>
+                                <th>Username</th>
+                                <th>Role</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="users-tbody">
+                            <tr><td colspan="4" style="text-align:center;padding:3rem;">
+                                <span class="spinner"></span> Loading users…
+                            </td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </main>
+</div>
+
+<!-- ====================== MODALS ====================== -->
+
+<!-- Add/Edit Manuscript Modal -->
+<div class="modal-overlay" id="modal-manuscript">
+    <div class="modal">
+        <div class="modal-header">
+            <h2 id="modal-ms-title">Add Manuscript</h2>
+            <button class="modal-close" onclick="closeModal('modal-manuscript')">×</button>
+        </div>
+        <div class="modal-body">
+            <div id="modal-alert"></div>
+            <input type="hidden" id="ms-id" />
+            <div class="form-group">
+                <label>Title *</label>
+                <input type="text" id="ms-title" placeholder="Manuscript title" maxlength="255" required />
+            </div>
+            <div class="form-group">
+                <label>Author *</label>
+                <input type="text" id="ms-author" placeholder="Author name" maxlength="150" required />
+            </div>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem;">
+                <div class="form-group">
+                    <label>Date *</label>
+                    <input type="date" id="ms-date" required />
+                </div>
+                <div class="form-group">
+                    <label>Genre</label>
+                    <select id="ms-genre">
+                        <option value="">— Select —</option>
+                        <option>Historical</option>
+                        <option>Poetry</option>
+                        <option>Science</option>
+                        <option>Philosophy</option>
+                        <option>Music</option>
+                        <option>Literature</option>
+                        <option>Fiction</option>
+                        <option>Other</option>
+                    </select>
+                </div>
+            </div>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem;">
+                <div class="form-group">
+                    <label>Language</label>
+                    <input type="text" id="ms-language" placeholder="e.g. Sanskrit, Latin" />
+                </div>
+                <div class="form-group">
+                    <label>Pages</label>
+                    <input type="number" id="ms-pages" placeholder="Number of pages" min="1" />
+                </div>
+            </div>
+            <div class="form-group">
+                <label>Description</label>
+                <textarea id="ms-description" placeholder="Describe the manuscript…" rows="4"></textarea>
+            </div>
+        </div>
+        <div class="modal-footer">
+            <button class="btn btn-outline" onclick="closeModal('modal-manuscript')">Cancel</button>
+            <button class="btn btn-primary" id="save-ms-btn" onclick="saveManuscript()">Save Manuscript</button>
+        </div>
+    </div>
+</div>
+
+<!-- View Manuscript Modal -->
+<div class="modal-overlay" id="modal-view">
+    <div class="modal">
+        <div class="modal-header">
+            <h2> Manuscript Details</h2>
+            <button class="modal-close" onclick="closeModal('modal-view')">×</button>
+        </div>
+        <div class="modal-body" id="view-content">
+        </div>
+        <div class="modal-footer">
+            <button class="btn btn-outline" onclick="closeModal('modal-view')">Close</button>
+        </div>
+    </div>
+</div>
+
+<!-- Delete Confirmation Modal -->
+<div class="modal-overlay" id="modal-delete">
+    <div class="modal" style="max-width:420px;">
+        <div class="modal-header" style="background:var(--crimson);">
+            <h2>⚠ Confirm Delete</h2>
+            <button class="modal-close" onclick="closeModal('modal-delete')">×</button>
+        </div>
+        <div class="modal-body" style="text-align:center;padding:2rem;">
+            <div style="font-size:3rem;margin-bottom:1rem;">🗑</div>
+            <p style="font-size:1rem;color:var(--ink);">
+                Are you sure you want to delete
+                <strong id="delete-ms-name">"this manuscript"</strong>?
+            </p>
+            <p style="font-size:0.85rem;margin-top:0.5rem;color:var(--crimson);">This action cannot be undone.</p>
+        </div>
+        <div class="modal-footer">
+            <button class="btn btn-outline" onclick="closeModal('modal-delete')">Cancel</button>
+            <button class="btn btn-danger" id="confirm-delete-btn">Delete</button>
+        </div>
+    </div>
+</div>
+
+<script src="js/api.js"></script>
+<script>
+    // ---- Auth Guard ----
+    requireAdmin();
+    initTopbar();
+
+    // ---- State ----
+    let allManuscripts = [];
+    let allUsers = [];
+    let deleteTargetId = null;
+
+    // ---- Tab switching ----
+    document.querySelectorAll('.tab-btn').forEach(btn => {
+        btn.addEventListener('click', function() {
+            document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+            document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+            this.classList.add('active');
+            document.getElementById('tab-' + this.dataset.tab).classList.add('active');
+            if (this.dataset.tab === 'users') loadUsers();
+        });
+    });
+
+    // ============================
+    // MANUSCRIPT FUNCTIONS
+    // ============================
+
+    async function loadManuscripts() {
+        try {
+            allManuscripts = await ManuscriptAPI.getAll();
+            renderManuscripts(allManuscripts);
+            updateStats();
+        } catch (err) {
+            showAlert('ms-alert', 'Failed to load manuscripts: ' + err.message);
+        }
+    }
+
+    function renderManuscripts(list) {
+        const tbody = document.getElementById('manuscripts-tbody');
+        if (!list.length) {
+            tbody.innerHTML = `<tr><td colspan="7">
+                <div class="empty-state">
+                    <div class="empty-icon"></div>
+                    <h3>No manuscripts found</h3>
+                    <p>Try a different search or add a new manuscript.</p>
+                </div>
+            </td></tr>`;
+            return;
+        }
+
+        tbody.innerHTML = list.map((m, i) => `
+            <tr>
+                <td>${i + 1}</td>
+                <td class="td-title">${escapeHtml(m.title)}</td>
+                <td>${escapeHtml(m.author)}</td>
+                <td>${formatDate(m.date)}</td>
+                <td>${m.genre ? `<span class="badge badge-genre">${m.genre}</span>` : '—'}</td>
+                <td>${m.pages || '—'}</td>
+                <td>
+                    <div class="action-btns">
+                        <button class="btn btn-outline btn-sm" onclick="viewManuscript(${m.id})" title="View">👁</button>
+                        <button class="btn btn-primary btn-sm" onclick="openEditModal(${m.id})" title="Edit">✏</button>
+                        <button class="btn btn-danger btn-sm" onclick="confirmDelete(${m.id}, '${escapeHtml(m.title)}')" title="Delete">🗑</button>
+                    </div>
+                </td>
+            </tr>
+        `).join('');
+    }
+
+    async function applyFilters() {
+        const query  = document.getElementById('ms-search').value.trim();
+        const genre  = document.getElementById('ms-filter-genre').value;
+        const start  = document.getElementById('ms-date-start').value;
+        const end    = document.getElementById('ms-date-end').value;
+
+        try {
+            let results;
+            if (start && end) {
+                results = await ManuscriptAPI.filterDate(start, end);
+            } else if (genre) {
+                results = await ManuscriptAPI.filterGenre(genre);
+            } else if (query) {
+                results = await ManuscriptAPI.search(query);
+            } else {
+                results = allManuscripts;
+            }
+            renderManuscripts(results);
+        } catch (err) {
+            showAlert('ms-alert', 'Filter error: ' + err.message);
+        }
+    }
+
+    // Live search
+    document.getElementById('ms-search').addEventListener('input', function() {
+        const q = this.value.toLowerCase();
+        if (!q) { renderManuscripts(allManuscripts); return; }
+        const filtered = allManuscripts.filter(m =>
+            m.title.toLowerCase().includes(q) ||
+            m.author.toLowerCase().includes(q) ||
+            (m.description || '').toLowerCase().includes(q)
+        );
+        renderManuscripts(filtered);
+    });
+
+    function openAddModal() {
+        document.getElementById('modal-ms-title').textContent = 'Add New Manuscript';
+        document.getElementById('ms-id').value = '';
+        document.getElementById('ms-title').value = '';
+        document.getElementById('ms-author').value = '';
+        document.getElementById('ms-date').value = '';
+        document.getElementById('ms-genre').value = '';
+        document.getElementById('ms-language').value = '';
+        document.getElementById('ms-pages').value = '';
+        document.getElementById('ms-description').value = '';
+        document.getElementById('save-ms-btn').textContent = 'Add Manuscript';
+        clearAlert('modal-alert');
+        openModal('modal-manuscript');
+    }
+
+    async function openEditModal(id) {
+        try {
+            const m = await ManuscriptAPI.getById(id);
+            document.getElementById('modal-ms-title').textContent = 'Edit Manuscript';
+            document.getElementById('ms-id').value = m.id;
+            document.getElementById('ms-title').value = m.title;
+            document.getElementById('ms-author').value = m.author;
+            document.getElementById('ms-date').value = m.date;
+            document.getElementById('ms-genre').value = m.genre || '';
+            document.getElementById('ms-language').value = m.language || '';
+            document.getElementById('ms-pages').value = m.pages || '';
+            document.getElementById('ms-description').value = m.description || '';
+            document.getElementById('save-ms-btn').textContent = 'Update Manuscript';
+            clearAlert('modal-alert');
+            openModal('modal-manuscript');
+        } catch (err) {
+            showAlert('ms-alert', 'Could not load manuscript: ' + err.message);
+        }
+    }
+
+    async function saveManuscript() {
+        const id    = document.getElementById('ms-id').value;
+        const title = document.getElementById('ms-title').value.trim();
+        const author= document.getElementById('ms-author').value.trim();
+        const date  = document.getElementById('ms-date').value;
+        const btn   = document.getElementById('save-ms-btn');
+
+        if (!title)  { showAlert('modal-alert', 'Title is required.'); return; }
+        if (!author) { showAlert('modal-alert', 'Author is required.'); return; }
+        if (!date)   { showAlert('modal-alert', 'Date is required.'); return; }
+
+        const payload = {
+            title, author, date,
+            genre:       document.getElementById('ms-genre').value || null,
+            language:    document.getElementById('ms-language').value.trim() || null,
+            pages:       document.getElementById('ms-pages').value || null,
+            description: document.getElementById('ms-description').value.trim() || null,
+        };
+
+        const isEdit = !!id;
+        setButtonLoading(btn, true, isEdit ? 'Update Manuscript' : 'Add Manuscript');
+
+        try {
+            if (isEdit) {
+                await ManuscriptAPI.update(id, payload);
+                showAlert('ms-alert', `"${title}" updated successfully!`, 'success');
+            } else {
+                await ManuscriptAPI.create(payload);
+                showAlert('ms-alert', `"${title}" added to the vault!`, 'success');
+            }
+            closeModal('modal-manuscript');
+            loadManuscripts();
+        } catch (err) {
+            showAlert('modal-alert', 'Error: ' + err.message);
+        } finally {
+            setButtonLoading(btn, false, isEdit ? 'Update Manuscript' : 'Add Manuscript');
+        }
+    }
+
+    async function viewManuscript(id) {
+        try {
+            const m = await ManuscriptAPI.getById(id);
+            document.getElementById('view-content').innerHTML = `
+                <div class="detail-panel">
+                    <div class="detail-item full-width">
+                        <label>Title</label>
+                        <p style="font-family:'Playfair Display',serif;font-size:1.2rem;font-weight:600;">${escapeHtml(m.title)}</p>
+                    </div>
+                    <div class="detail-item">
+                        <label>Author</label>
+                        <p>${escapeHtml(m.author)}</p>
+                    </div>
+                    <div class="detail-item">
+                        <label>Date</label>
+                        <p>${formatDate(m.date)}</p>
+                    </div>
+                    <div class="detail-item">
+                        <label>Genre</label>
+                        <p>${m.genre ? `<span class="badge badge-genre">${m.genre}</span>` : '—'}</p>
+                    </div>
+                    <div class="detail-item">
+                        <label>Language</label>
+                        <p>${escapeHtml(m.language || '—')}</p>
+                    </div>
+                    <div class="detail-item">
+                        <label>Pages</label>
+                        <p>${m.pages || '—'}</p>
+                    </div>
+                    <div class="detail-item full-width">
+                        <label>Description</label>
+                        <p style="line-height:1.7;">${escapeHtml(m.description || 'No description provided.')}</p>
+                    </div>
+                </div>`;
+            openModal('modal-view');
+        } catch (err) {
+            showAlert('ms-alert', 'Could not load details: ' + err.message);
+        }
+    }
+
+    function confirmDelete(id, title) {
+        deleteTargetId = id;
+        document.getElementById('delete-ms-name').textContent = `"${title}"`;
+        document.getElementById('confirm-delete-btn').onclick = async () => {
+            try {
+                await ManuscriptAPI.delete(id);
+                closeModal('modal-delete');
+                showAlert('ms-alert', 'Manuscript deleted successfully.', 'success');
+                loadManuscripts();
+            } catch (err) {
+                closeModal('modal-delete');
+                showAlert('ms-alert', 'Delete failed: ' + err.message);
+            }
+        };
+        openModal('modal-delete');
+    }
+
+    // ============================
+    // USER FUNCTIONS
+    // ============================
+
+    async function loadUsers() {
+        try {
+            allUsers = await UserAPI.getAll();
+            renderUsers(allUsers);
+            updateStats();
+        } catch (err) {
+            showAlert('users-alert', 'Failed to load users: ' + err.message);
+        }
+    }
+
+    function renderUsers(list) {
+        const tbody = document.getElementById('users-tbody');
+        if (!list.length) {
+            tbody.innerHTML = `<tr><td colspan="4" class="empty-state">No users found.</td></tr>`;
+            return;
+        }
+        tbody.innerHTML = list.map((u, i) => `
+            <tr>
+                <td>${i + 1}</td>
+                <td><strong>${escapeHtml(u.username)}</strong></td>
+                <td><span class="badge badge-${u.role === 'ADMIN' ? 'admin' : 'user'}">${u.role}</span></td>
+                <td>
+                    <div class="action-btns">
+                        <select class="btn btn-outline btn-sm" onchange="changeRole(${u.id}, this.value)" style="padding:0.35rem;">
+                            <option value="">Change Role</option>
+                            <option value="USER">→ USER</option>
+                            <option value="ADMIN">→ ADMIN</option>
+                        </select>
+                        <button class="btn btn-danger btn-sm" onclick="deleteUser(${u.id}, '${escapeHtml(u.username)}')">Delete</button>
+                    </div>
+                </td>
+            </tr>
+        `).join('');
+    }
+
+    async function changeRole(id, role) {
+        if (!role) return;
+        try {
+            await UserAPI.updateRole(id, role);
+            showAlert('users-alert', 'User role updated successfully.', 'success');
+            loadUsers();
+        } catch (err) {
+            showAlert('users-alert', 'Failed to update role: ' + err.message);
+        }
+    }
+
+    async function deleteUser(id, username) {
+        if (!confirm(`Delete user "${username}"? This cannot be undone.`)) return;
+        try {
+            await UserAPI.delete(id);
+            showAlert('users-alert', `User "${username}" deleted.`, 'success');
+            loadUsers();
+        } catch (err) {
+            showAlert('users-alert', 'Failed to delete user: ' + err.message);
+        }
+    }
+
+    // ============================
+    // STATS
+    // ============================
+
+    function updateStats() {
+        document.getElementById('stat-manuscripts').textContent = allManuscripts.length;
+        if (allUsers.length) {
+            document.getElementById('stat-users').textContent   = allUsers.length;
+            document.getElementById('stat-admins').textContent  = allUsers.filter(u => u.role === 'ADMIN').length;
+        }
+        const genres = new Set(allManuscripts.map(m => m.genre).filter(Boolean));
+        document.getElementById('stat-genres').textContent = genres.size;
+    }
+
+    // ============================
+    // HELPERS
+    // ============================
+    function escapeHtml(str) {
+        if (!str) return '';
+        return String(str)
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;')
+            .replace(/'/g, '&#39;');
+    }
+
+    // ---- Init ----
+    loadManuscripts();
+</script>
+</body>
+</html>

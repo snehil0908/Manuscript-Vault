@@ -1,0 +1,5 @@
+#!/bin/sh
+# Maven Wrapper Script (Linux/Mac)
+MAVEN_PROJECTBASEDIR="$(cd "$(dirname "$0")" && pwd)"
+exec "$MAVEN_PROJECTBASEDIR/.mvn/wrapper/mvnw-native" "$@" 2>/dev/null || \
+  mvn "$@"

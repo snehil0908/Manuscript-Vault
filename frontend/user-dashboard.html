@@ -1,0 +1,455 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Dashboard — ManuscriptVault</title>
+    <link rel="stylesheet" href="css/style.css" />
+    <style>
+        .manuscript-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            gap: 1.5rem;
+        }
+
+        .ms-card {
+            background: var(--white);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-lg);
+            padding: 1.5rem;
+            display: flex;
+            flex-direction: column;
+            gap: 0.75rem;
+            border-top: 4px solid var(--gold);
+            box-shadow: 0 2px 8px var(--shadow);
+            transition: all 0.25s;
+            cursor: pointer;
+        }
+        .ms-card:hover {
+            box-shadow: 0 6px 20px var(--shadow-lg);
+            transform: translateY(-3px);
+            border-top-color: var(--gold-light);
+        }
+
+        .ms-card-title {
+            font-family: 'Playfair Display', serif;
+            font-size: 1.1rem;
+            font-weight: 700;
+            color: var(--ink);
+            line-height: 1.4;
+        }
+
+        .ms-card-meta {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.5rem;
+            font-size: 0.8rem;
+            color: var(--ink-soft);
+        }
+
+        .ms-card-meta span {
+            display: flex;
+            align-items: center;
+            gap: 0.2rem;
+        }
+
+        .ms-card-desc {
+            font-size: 0.875rem;
+            color: var(--ink-soft);
+            line-height: 1.6;
+            flex: 1;
+        }
+
+        .ms-card-footer {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-top: 0.5rem;
+            padding-top: 0.75rem;
+            border-top: 1px solid var(--parchment2);
+        }
+
+        .view-toggle {
+            display: flex;
+            gap: 0.5rem;
+            background: var(--parchment2);
+            border-radius: var(--radius);
+            padding: 3px;
+        }
+        .view-toggle button {
+            background: none;
+            border: none;
+            padding: 0.3rem 0.75rem;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 0.85rem;
+            color: var(--ink-soft);
+            transition: all 0.2s;
+        }
+        .view-toggle button.active {
+            background: var(--white);
+            color: var(--gold);
+            box-shadow: 0 1px 4px var(--shadow);
+        }
+
+        .results-count {
+            font-size: 0.85rem;
+            color: var(--ink-soft);
+        }
+
+        /* Table view */
+        #list-view { display: none; }
+        body.list-mode #grid-view { display: none; }
+        body.list-mode #list-view { display: block; }
+    </style>
+</head>
+<body>
+<div class="page-wrapper">
+
+    <!-- Topbar -->
+    <header class="topbar">
+        <div class="topbar-brand">
+            <span class="logo-icon"></span>
+            <div>
+                <h1>ManuscriptVault</h1>
+                <span>Digital Archive</span>
+            </div>
+        </div>
+        <div class="topbar-nav">
+            <div class="topbar-user">
+                <span></span>
+                <span id="topbar-username">User</span>
+                <span class="role-badge" id="topbar-role">USER</span>
+            </div>
+            <button class="btn-logout" id="btn-logout">Sign Out</button>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="main-content">
+
+        <!-- Welcome Banner -->
+        <div style="margin-bottom:1.75rem;padding:1.5rem;background:linear-gradient(135deg,var(--ink) 0%,var(--ink-soft) 100%);border-radius:var(--radius-lg);border-bottom:3px solid var(--gold);color:var(--parchment);">
+            <h2 style="font-family:'Playfair Display',serif;color:var(--gold-light);margin-bottom:0.25rem;">
+                Welcome to the Vault, <span id="welcome-name">Scholar</span>
+            </h2>
+            <p style="color:var(--parchment2);font-size:0.9rem;">
+                Explore our curated collection of rare manuscripts from across history.
+            </p>
+        </div>
+
+        <!-- Search & Filter Bar -->
+        <div class="search-bar">
+            <input type="text" id="search-input" placeholder=" Search by title, author, or keyword…" style="flex:2;" />
+            <select id="filter-genre">
+                <option value="">All Genres</option>
+                <option value="Historical">Historical</option>
+                <option value="Poetry">Poetry</option>
+                <option value="Science">Science</option>
+                <option value="Philosophy">Philosophy</option>
+                <option value="Music">Music</option>
+                <option value="Literature">Literature</option>
+                <option value="Fiction">Fiction</option>
+            </select>
+            <select id="filter-type">
+                <option value="all">Search: All fields</option>
+                <option value="title">Search: Title only</option>
+                <option value="author">Search: Author only</option>
+            </select>
+            <div style="display:flex;gap:0.4rem;align-items:center;">
+                <input type="date" id="date-start" title="From date" style="min-width:140px;" />
+                <span style="color:var(--ink-soft);font-size:0.8rem;">to</span>
+                <input type="date" id="date-end" title="To date" style="min-width:140px;" />
+            </div>
+            <button class="btn btn-primary" onclick="performSearch()">Search</button>
+            <button class="btn btn-outline" onclick="resetSearch()">Reset</button>
+        </div>
+
+        <!-- Controls Row -->
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1.25rem;">
+            <p class="results-count" id="results-count">Loading…</p>
+            <div class="view-toggle">
+                <button class="active" id="btn-grid" onclick="setView('grid')">⊞ Grid</button>
+                <button id="btn-list" onclick="setView('list')">☰ List</button>
+            </div>
+        </div>
+
+        <!-- Alert -->
+        <div id="ms-alert"></div>
+
+        <!-- Grid View -->
+        <div id="grid-view">
+            <div class="manuscript-grid" id="manuscript-grid">
+                <div style="grid-column:1/-1;text-align:center;padding:3rem;">
+                    <span class="spinner"></span>
+                    <p style="margin-top:1rem;color:var(--ink-soft);">Loading manuscripts…</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- List View -->
+        <div id="list-view">
+            <div class="card">
+                <div class="table-wrap">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>#</th>
+                                <th>Title</th>
+                                <th>Author</th>
+                                <th>Date</th>
+                                <th>Genre</th>
+                                <th>Language</th>
+                                <th>Pages</th>
+                                <th>Action</th>
+                            </tr>
+                        </thead>
+                        <tbody id="manuscript-tbody"></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </main>
+</div>
+
+<!-- View Detail Modal -->
+<div class="modal-overlay" id="modal-detail">
+    <div class="modal" style="max-width:650px;">
+        <div class="modal-header">
+            <h2>Manuscript Details</h2>
+            <button class="modal-close" onclick="closeModal('modal-detail')">×</button>
+        </div>
+        <div class="modal-body" id="detail-content"></div>
+        <div class="modal-footer">
+            <button class="btn btn-outline" onclick="closeModal('modal-detail')">Close</button>
+        </div>
+    </div>
+</div>
+
+<script src="js/api.js"></script>
+<script>
+    // ---- Auth Guard ----
+    requireAuth();
+    initTopbar();
+
+    // Set welcome name
+    document.getElementById('welcome-name').textContent = getUsername() || 'Scholar';
+
+    let allManuscripts = [];
+    let currentView = 'grid';
+
+    // ============================
+    // LOAD & RENDER
+    // ============================
+
+    async function loadManuscripts() {
+        try {
+            allManuscripts = await ManuscriptAPI.getAll();
+            renderAll(allManuscripts);
+        } catch (err) {
+            showAlert('ms-alert', 'Failed to load manuscripts: ' + err.message);
+        }
+    }
+
+    function renderAll(list) {
+        updateCount(list.length);
+        renderGrid(list);
+        renderList(list);
+    }
+
+    function updateCount(n) {
+        document.getElementById('results-count').textContent =
+            n === 0 ? 'No manuscripts found'
+            : n === 1 ? '1 manuscript found'
+            : `${n} manuscripts found`;
+    }
+
+    function renderGrid(list) {
+        const grid = document.getElementById('manuscript-grid');
+        if (!list.length) {
+            grid.innerHTML = `
+                <div class="empty-state" style="grid-column:1/-1;">
+                    <div class="empty-icon"></div>
+                    <h3>No manuscripts found</h3>
+                    <p>Try adjusting your search or filters.</p>
+                </div>`;
+            return;
+        }
+        grid.innerHTML = list.map(m => `
+            <div class="ms-card" onclick="viewDetail(${m.id})">
+                <div class="ms-card-title">${escapeHtml(m.title)}</div>
+                <div class="ms-card-meta">
+                    <span> ${escapeHtml(m.author)}</span>
+                    <span> ${formatDate(m.date)}</span>
+                    ${m.pages ? `<span> ${m.pages} pages</span>` : ''}
+                </div>
+                <div class="ms-card-desc">${escapeHtml(truncate(m.description, 120))}</div>
+                <div class="ms-card-footer">
+                    <span>${m.genre ? `<span class="badge badge-genre">${m.genre}</span>` : ''}</span>
+                    <span style="font-size:0.8rem;color:var(--gold);font-weight:500;">${m.language || ''}</span>
+                </div>
+            </div>
+        `).join('');
+    }
+
+    function renderList(list) {
+        const tbody = document.getElementById('manuscript-tbody');
+        if (!list.length) {
+            tbody.innerHTML = `<tr><td colspan="8">
+                <div class="empty-state">No manuscripts found.</div>
+            </td></tr>`;
+            return;
+        }
+        tbody.innerHTML = list.map((m, i) => `
+            <tr>
+                <td>${i + 1}</td>
+                <td class="td-title">${escapeHtml(m.title)}</td>
+                <td>${escapeHtml(m.author)}</td>
+                <td>${formatDate(m.date)}</td>
+                <td>${m.genre ? `<span class="badge badge-genre">${m.genre}</span>` : '—'}</td>
+                <td>${escapeHtml(m.language || '—')}</td>
+                <td>${m.pages || '—'}</td>
+                <td>
+                    <button class="btn btn-primary btn-sm" onclick="viewDetail(${m.id})">View</button>
+                </td>
+            </tr>
+        `).join('');
+    }
+
+    // ============================
+    // VIEW DETAIL
+    // ============================
+
+    async function viewDetail(id) {
+        try {
+            const m = await ManuscriptAPI.getById(id);
+            document.getElementById('detail-content').innerHTML = `
+                <div class="detail-panel">
+                    <div class="detail-item full-width">
+                        <label>Title</label>
+                        <p style="font-family:'Playfair Display',serif;font-size:1.3rem;font-weight:700;">${escapeHtml(m.title)}</p>
+                    </div>
+                    <div class="detail-item">
+                        <label>Author</label>
+                        <p> ${escapeHtml(m.author)}</p>
+                    </div>
+                    <div class="detail-item">
+                        <label>Date</label>
+                        <p> ${formatDate(m.date)}</p>
+                    </div>
+                    <div class="detail-item">
+                        <label>Genre</label>
+                        <p>${m.genre ? `<span class="badge badge-genre">${m.genre}</span>` : '—'}</p>
+                    </div>
+                    <div class="detail-item">
+                        <label>Language</label>
+                        <p>${escapeHtml(m.language || '—')}</p>
+                    </div>
+                    <div class="detail-item">
+                        <label>Pages</label>
+                        <p>${m.pages ? ` ${m.pages} pages` : '—'}</p>
+                    </div>
+                    <div class="detail-item full-width">
+                        <label>Description</label>
+                        <p style="line-height:1.8;font-size:0.95rem;">${escapeHtml(m.description || 'No description available for this manuscript.')}</p>
+                    </div>
+                </div>`;
+            openModal('modal-detail');
+        } catch (err) {
+            showAlert('ms-alert', 'Could not load manuscript details: ' + err.message);
+        }
+    }
+
+    // ============================
+    // SEARCH & FILTER
+    // ============================
+
+    async function performSearch() {
+        const query  = document.getElementById('search-input').value.trim();
+        const type   = document.getElementById('filter-type').value;
+        const genre  = document.getElementById('filter-genre').value;
+        const start  = document.getElementById('date-start').value;
+        const end    = document.getElementById('date-end').value;
+
+        try {
+            let results;
+
+            if (start && end) {
+                results = await ManuscriptAPI.filterDate(start, end);
+            } else if (genre) {
+                results = await ManuscriptAPI.filterGenre(genre);
+            } else if (query) {
+                if (type === 'title')  results = await ManuscriptAPI.searchTitle(query);
+                else if (type === 'author') results = await ManuscriptAPI.searchAuthor(query);
+                else results = await ManuscriptAPI.search(query);
+            } else {
+                results = allManuscripts;
+            }
+
+            renderAll(results);
+        } catch (err) {
+            showAlert('ms-alert', 'Search failed: ' + err.message);
+        }
+    }
+
+    function resetSearch() {
+        document.getElementById('search-input').value = '';
+        document.getElementById('filter-genre').value = '';
+        document.getElementById('filter-type').value = 'all';
+        document.getElementById('date-start').value = '';
+        document.getElementById('date-end').value = '';
+        renderAll(allManuscripts);
+    }
+
+    // Live search
+    document.getElementById('search-input').addEventListener('input', function() {
+        const q = this.value.toLowerCase();
+        if (!q) { renderAll(allManuscripts); return; }
+        const filtered = allManuscripts.filter(m =>
+            m.title.toLowerCase().includes(q) ||
+            m.author.toLowerCase().includes(q) ||
+            (m.description || '').toLowerCase().includes(q)
+        );
+        renderAll(filtered);
+    });
+
+    // Enter key triggers search
+    document.getElementById('search-input').addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') performSearch();
+    });
+
+    // ============================
+    // VIEW TOGGLE
+    // ============================
+
+    function setView(mode) {
+        currentView = mode;
+        if (mode === 'grid') {
+            document.body.classList.remove('list-mode');
+            document.getElementById('btn-grid').classList.add('active');
+            document.getElementById('btn-list').classList.remove('active');
+        } else {
+            document.body.classList.add('list-mode');
+            document.getElementById('btn-list').classList.add('active');
+            document.getElementById('btn-grid').classList.remove('active');
+        }
+    }
+
+    // ============================
+    // HELPERS
+    // ============================
+    function escapeHtml(str) {
+        if (!str) return '';
+        return String(str)
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;')
+            .replace(/'/g, '&#39;');
+    }
+
+    // ---- Init ----
+    loadManuscripts();
+</script>
+</body>
+</html>
